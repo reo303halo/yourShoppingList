@@ -7,11 +7,19 @@
 
 import SwiftUI
 
-struct ContentView: View {
+struct ShoppingListView: View {
     @State private var newItem = ""
     @State private var items: Array<Item> = []
     
     private let itemsKey = "itemsKey"
+    
+    init() {
+            do {
+                self.items = try getList()
+            } catch {
+                print(error)
+            }
+        }
 
     var body: some View {
         HStack {
@@ -73,26 +81,20 @@ struct ContentView: View {
         }
     }
     
-    init() {
-        if let data = UserDefaults.standard.data(forKey: itemsKey),
-           let savedItems = try? JSONDecoder().decode([Item].self, from: data) {
-            self.items = savedItems
+    func saveList(value: Array<Item>) {
+        do {
+            let shoppingItemData = try JSONEncoder().encode(value)
+            UserDefaults.standard.set(shoppingItemData, forKey: "shoppingItems")
+        } catch {
+            // Handle the error here, such as logging it or rethrowing it.
+            print("Error encoding shopping items: \(error)")
         }
     }
-    
-    private func saveItems() {
-        if let data = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(data, forKey: itemsKey)
-        }
-    }
-    
-    private var bindingItems: Binding<Array<Item>> {
-        Binding<Array<Item>>(
-            get: { items },
-            set: {
-                items = $0
-                saveItems()
-            })
+
+    func getList() throws -> Array<Item> {
+            guard let shoppingItemData = UserDefaults.standard.data(forKey: "shoppingItems") else { return [] }
+            let items = try JSONDecoder().decode(Array<Item>.self, from: shoppingItemData)
+            return items
     }
     
     func addItem() {
@@ -104,17 +106,20 @@ struct ContentView: View {
             items.append(item)
         }
         newItem = ""
+        saveList(value: items)
     }
     
     func deleteItem(_ index: Item) {
         if let index = items.firstIndex(where: { $0.id == index.id }) {
             items.remove(at: index)
+            saveList(value: items)
         }
     }
     
     func addOne(_ index: Item) {
             if let index = items.firstIndex(where: { $0.id == index.id }) {
                 items[index].amount += 1
+                saveList(value: items)
         }
     }
     
@@ -123,12 +128,14 @@ struct ContentView: View {
             items[index].amount -= 1
             if items[index].amount == 0 {
                 deleteItem(items[index])
+                saveList(value: items)
             }
         }
     }
     
     func clearItems() {
         items.removeAll()
+        saveList(value: items)
     }
 }
 
@@ -160,9 +167,8 @@ struct amountButton: View {
 }
 
 
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ShoppingListView()
     }
 }

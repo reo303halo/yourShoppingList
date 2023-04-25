@@ -2,7 +2,14 @@
 //  ContentView.swift
 //  yourShoppingList
 //
-//  Created by Roy Espen Olsen on 25/04/2023.
+//  Created by Roy Espen Olsen on 24/04/2023.
+//  Start code created in Swift Playgrounds some days before.
+//
+//  Missing app icons and load screen.
+//
+//  Using UserDefault as storage -> Ok for this type of small list.
+//  CoreData or other database if further developement.
+//  Other idea could be to use iCloud or database to share shopping list.
 //
 
 import SwiftUI
@@ -12,14 +19,6 @@ struct ShoppingListView: View {
     @State private var items: Array<Item> = []
     
     private let itemsKey = "itemsKey"
-    
-    init() {
-            do {
-                self.items = try getList()
-            } catch {
-                print(error)
-            }
-        }
 
     var body: some View {
         HStack {
@@ -36,18 +35,6 @@ struct ShoppingListView: View {
             .foregroundColor(Color.blue)
         
         VStack {
-            HStack {
-                TextField("Add Item", text: $newItem).padding()
-                    .background(Color(.link).opacity(0.25).clipShape(RoundedRectangle(cornerRadius:20)))
-                    
-                Button(action: {
-                    addItem()
-                }) {
-                    amountButton(imageName: "plus.circle", color: .blue, buttonSize: 25)
-                }
-            }.padding()
-            
-            
             List {
                 ForEach(items) { item in
                     HStack {
@@ -68,8 +55,7 @@ struct ShoppingListView: View {
                                 amountButton(imageName: "plus.circle", color: .blue, buttonSize: 20)
                             }
                         }
-                    }
-                    .swipeActions {
+                    }.swipeActions {
                         Button(role: .destructive) {
                             self.deleteItem(item)
                         } label: {
@@ -77,7 +63,28 @@ struct ShoppingListView: View {
                         }
                     }
                 }
+            }.onAppear {
+                do {
+                    self.items = try getList()
+                } catch {
+                    print(error)
+                }
             }
+            
+            HStack {
+                TextField("Add Item", text: $newItem)
+                    .padding()
+                    .background(Color(.link).opacity(0.25).clipShape(RoundedRectangle(cornerRadius:20)))
+                    .submitLabel(.done)
+                    .onSubmit(addItem)
+                    .disableAutocorrection(true)
+                    
+                Button(action: {
+                    addItem()
+                }) {
+                    amountButton(imageName: "plus.circle", color: .blue, buttonSize: 25)
+                }
+            }.padding()
         }
     }
     
@@ -86,7 +93,6 @@ struct ShoppingListView: View {
             let shoppingItemData = try JSONEncoder().encode(value)
             UserDefaults.standard.set(shoppingItemData, forKey: "shoppingItems")
         } catch {
-            // Handle the error here, such as logging it or rethrowing it.
             print("Error encoding shopping items: \(error)")
         }
     }
